@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-A routing layer for the onboarding bot tutorial built using
-[Slack's Events API](https://api.slack.com/events-api) in Python
+A routing layer for the task notification bot tutorial built using
+Python
 """
 import time
 import json
@@ -15,13 +15,9 @@ from multiprocessing import Process
 CLIENT = setting.CLIENT
 WORKBOOK = 'BT-Logs-Bot-Copy'
 
-pyBot = bot.Bot()
-slack = pyBot.client
-
 app = Flask(__name__)
 
-
-def _event_handler(event_type, slack_event):
+def _slash_command_handler(slash_command):
     """
     A helper function that routes events from Slack to our Bot
     by event type and subtype.
@@ -39,52 +35,13 @@ def _event_handler(event_type, slack_event):
         Response object with 200 - ok or 500 - No Event Handler error
 
     """
-    team_id = slack_event["team_id"]
-    # ================ Team Join Events =============== #
-    # When the user first joins a team, the type of event will be team_join
-    if event_type == "team_join":
-        user_id = slack_event["event"]["user"]["id"]
-        # Send the onboarding message
-        pyBot.onboarding_message(team_id, user_id)
-        return make_response("Welcome Message Sent", 200,)
-
-    # ============== Share Message Events ============= #
-    # If the user has shared the onboarding message, the event type will be
-    # message. We'll also need to check that this is a message that has been
-    # shared by looking into the attachments for "is_shared".
-    elif event_type == "message" and slack_event["event"].get("attachments"):
-        user_id = slack_event["event"].get("user")
-        if slack_event["event"]["attachments"][0].get("is_share"):
-            # Update the onboarding message and check off "Share this Message"
-            pyBot.update_share(team_id, user_id)
-            return make_response("Welcome message updates with shared message",
-                                 200,)
-
-    # ============= Reaction Added Events ============= #
-    # If the user has added an emoji reaction to the onboarding message
-    elif event_type == "reaction_added":
-        user_id = slack_event["event"]["user"]
-        # Update the onboarding message
-        pyBot.update_emoji(team_id, user_id)
-        return make_response("Welcome message updates with reactji", 200,)
-
-    # =============== Pin Added Events ================ #
-    # If the user has added an emoji reaction to the onboarding message
-    elif event_type == "pin_added":
-        user_id = slack_event["event"]["user"]
-        # Update the onboarding message
-        pyBot.update_pin(team_id, user_id)
-        return make_response("Welcome message updates with pin", 200,)
-
-    # ============= Event Type Not Found! ============= #
-    # If the event_type does not have a handler
-    message = "You have not added an event handler for the %s" % event_type
-    # Return a helpful error message
-    return make_response(message, 200, {"X-Slack-No-Retry": 1})
+    return "event handler"
 
 @app.route("/", methods=["GET"])
 def home():
-    """This route renders the installation page with 'Add to Slack' button."""
+    """
+    This route renders the Application Home PAge and and install button which rediects you to theinstall page.
+    """
     # rendering home template
     return render_template("index.html")
 
@@ -93,8 +50,8 @@ def pre_install():
     """This route renders the installation page with 'Add to Slack' button."""
     # Since we've set the client ID and scope on our Bot object, we can change
     # them more easily while we're developing our app.
-    client_id = pyBot.oauth["client_id"]
-    scope = pyBot.oauth["scope"]
+    # client_id = pyBot.oauth["client_id"]
+    # scope = pyBot.oauth["scope"]
     # Our template is using the Jinja templating language to dynamically pass
     # our client id and scope
     return render_template("install.html", client_id=client_id, scope=scope)
@@ -119,62 +76,36 @@ def thanks():
 @app.route("/listening", methods=["GET", "POST"])
 def hears():
     """
-    This route listens for incoming events from Slack and uses the event
-    handler helper function to route events to our Bot.
+    This route listens for incoming commands from Slack and uses the slack command handler helper function to route events to our Bot.
     """
-    slack_event = json.loads(request.data)
-
-    # ============= Slack URL Verification ============ #
-    # In order to verify the url of our endpoint, Slack will send a challenge
-    # token in a request and check for this token in the response our endpoint
-    # sends back.
-    #       For more info: https://api.slack.com/events/url_verification
-    if "challenge" in slack_event:
-        return make_response(slack_event["challenge"], 200, {"content_type":
-                                                             "application/json"
-                                                             })
-
-    # ============ Slack Token Verification =========== #
-    # We can verify the request is coming from Slack by checking that the
-    # verification token in the request matches our app's settings
-    if pyBot.verification != slack_event.get("token"):
-        message = "Invalid Slack verification token: %s \npyBot has: \
-                   %s\n\n" % (slack_event["token"], pyBot.verification)
-        # By adding "X-Slack-No-Retry" : 1 to our response headers, we turn off
-        # Slack's automatic retries during development.
-        make_response(message, 403, {"X-Slack-No-Retry": 1})
-
-    # ====== Process Incoming Events from Slack ======= #
-    # If the incoming request is an Event we've subcribed to
-    if "event" in slack_event:
-        event_type = slack_event["event"]["type"]
-        # Then handle the event by event_type and have your bot respond
-        return _event_handler(event_type, slack_event)
-    # If our bot hears things that are not events we've subscribed to,
-    # send a quirky but helpful error response
-    return make_response("[NO EVENT IN SLACK REQUEST] These are not the droids\
-                         you're looking for.", 404, {"X-Slack-No-Retry": 1})
+    data = request.data
+    slack_command = json.loads(data)
+    print(slack_command)
+    commandTypes = ["today", "tomorrow", "mytask"]
+    if slack_command == "today":
+        print("i am your today's task")
+    return "listening"
 
 
 # Main function
 def main():
     while True:
-        # a = datetime.now()
-        # b = a.hour
-        # c = a.minute
+        curent_time = datetime.now()
+        current_hour = a.hour
+        current_minute = a.minute
 
-        # if b - 8 > 0:
-        #     sleep_time = 24 - b + 8 - (c/60)
-        # elif b - 8 < 0:
-        #     sleep_time = 8 - b - (c/60)
-        # elif b == 8:
-        #     if c == 0:
-        #         sleep_time = 0
-        #     else:
-        #         sleep_time = 24 - b + 8 - (c/60)
+        if current_hour - 8 > 0:
+            sleep_time = 24 - current_hour + 8 - (current_minute/60)
+        elif current_hour - 8 < 0:
+            sleep_time = 8 - current_hour - (current_minute/60)
+        elif current_hour == 8:
+            if current_minute == 0:
+                sleep_time = 0
+            else:
+                sleep_time = 24 - current_hour + 8 - (current_minute/60)
 
-        # time.sleep(sleep_time * 3600)
-        time.sleep(120)
+        time.sleep(sleep_time * 3600)
+        # time.sleep(120)
         sheet = CLIENT.open('BT-Logs-Bot-Copy').sheet1
         sheet_hash = sheet.get_all_records(empty2zero=False, head=1, default_blank='')
         for index, row in enumerate(sheet_hash):
@@ -201,7 +132,7 @@ def main():
 
 if __name__ == '__main__':
     # if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-    p = Process(target=main)
-    p.start()
+    main_app = Process(target=main)
+    main_app.start()
     app.run(debug=True, use_reloader=False)
-    p.join()
+    main_app.join()
