@@ -13,13 +13,13 @@ dotenv.load()
 CLIENT_SECRET_FILE = 'client_secret.json'
 MAXIMUM_WAITING_PERIOD = 900 # waiting period in seconds
 ROOM = 'backtilde'
-BOT_NAME = 'btbot'
+BOT_NAME = 'Ranti'
 
 # Get Data from .env / json file
 # ========START================
 # SLACK SECRET OBJECT
 SLACK_BOT_SECRET = {
-    'token': dotenv.get('TOKEN', ''),
+    'token': dotenv.get('SLACK_TOKEN', ''),
     'slack_channel': dotenv.get('SLACK_CHANNEL', 'bt-bot-test')
 }
 

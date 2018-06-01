@@ -1,5 +1,7 @@
 btbotenv/
+btbotenv
 .vscode/
+.vscode
 app/__pycache__/
 .env
 .env/
